@@ -1,17 +1,11 @@
-from typing import AsyncGenerator, List, Optional, NamedTuple
+from typing import AsyncGenerator, List, Optional
 
 from pyrogram.types import Chat, Message
 
 from telespider.config import settings
 from telespider.console import console
 from telespider.app import app
-
-
-class ParsingProgress(NamedTuple):
-    message: Message
-    channels_parsed: int
-    channels_remaining: int
-
+from .types import ParsingProgress
 
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 
