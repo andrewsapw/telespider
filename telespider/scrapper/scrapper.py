@@ -1,12 +1,10 @@
 from typing import AsyncGenerator, List, Optional, NamedTuple
 
-import uvloop
-from pyrogram.client import Client
 from pyrogram.types import Chat, Message
 
 from telespider.config import settings
-from telespider.config import ROOT_DIR
 from telespider.console import console
+from telespider.app import app
 
 
 class ParsingProgress(NamedTuple):
@@ -15,15 +13,7 @@ class ParsingProgress(NamedTuple):
     channels_remaining: int
 
 
-SESSION_DIR = ROOT_DIR.parent / "sessions"
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
-
-app = Client(
-    name=settings.APP_NAME,
-    api_id=settings.API_ID,
-    api_hash=settings.API_HASH,
-    workdir=SESSION_DIR,
-)
 
 
 async def parse_channel(
@@ -99,8 +89,3 @@ async def search_text(text: str):
                     console.print(f"[bold]{m.chat.username}[/bold] - {m.text}")
 
                 n_parsed += 1
-
-
-if __name__ == "__main__":
-    uvloop.install()
-    app.run(search_text("сарапул"))
