@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "telespider"
+version = "0.1.0"
+description = "recursively parsing tg channels"
+authors = ["andrewsap <andrewsapw@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyrogram = "^2.0.103"
+tgcrypto = "^1.2.5"
+pydantic = "^1.10.7"
+rich = "^13.3.4"
+uvloop = "^0.17.0"
+
+
+[tool.poetry.group.dev.dependencies]
+python-dotenv = "^1.0.0"
+pre-commit = "^3.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
