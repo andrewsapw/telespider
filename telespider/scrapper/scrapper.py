@@ -80,6 +80,6 @@ async def search_text(text: str):
                 # update task description
                 message_text = m.text or m.caption
                 if text in message_text.lower():
-                    console.print(f"[bold]{m.chat.username}[/bold] - {m.text}")
+                    console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
 
                 n_parsed += 1
