@@ -90,7 +90,7 @@ async def search_text(text: str):
                 if n_parsed % 100 == 0:
                     status.update(
                         f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
-                        f"total messages {n_parsed} Searching for [bold]{text}[/bold] in {m.chat.username}"
+                        f"total messages {n_parsed} | Searching for [bold]{text}[/bold] in {m.chat.username}"
                     )
 
                 # update task description
