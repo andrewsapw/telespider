@@ -12,9 +12,6 @@ from telespider.console import console
 
 uvloop.install()
 
-# asyncio.get_event_loop().run_until_complete(scrapper.search_text("arfana"))
-# app.run(scrapper.search_text("arfana"))
-
 
 def coro(f):
     @wraps(f)
