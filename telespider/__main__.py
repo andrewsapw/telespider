@@ -8,6 +8,7 @@ import click
 from telespider import scrapper
 from telespider.config import settings
 from telespider.app import app
+from telespider.console import console
 
 uvloop.install()
 
@@ -33,13 +34,16 @@ def cli(ctx, debug):
 
 @cli.command(name="search")
 @click.option("--explore/--no-explore", default=True, help="Auto explore new channels")
+@click.option("--silent", is_flag=True, default=False, help="Suppress all output")
 @click.option("--word", "-w", type=str, required=False)
 @click.option("--user", "-u", type=str, required=False)
 @click.option(
     "-n", type=int, default=1000, help="Number of messages to parse per channel"
 )
 @coro
-async def search_word(explore: bool, word: Optional[str], user: Optional[str], n: int):
+async def search_word(
+    explore: bool, silent: bool, word: Optional[str], user: Optional[str], n: int
+):
     if word is None and user is None:
         raise click.BadOptionUsage(
             option_name="word | user", message="word or user must be specified"
@@ -47,6 +51,7 @@ async def search_word(explore: bool, word: Optional[str], user: Optional[str], n
 
     settings.MAX_PER_CHANNEL = n
     settings.AUTO_EXPLORE_CHANNELS = explore
+    console.quiet = silent
 
     await app.start()
     try:
