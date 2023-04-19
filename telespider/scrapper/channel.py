@@ -1,9 +1,11 @@
 from typing import AsyncGenerator
 
 from pyrogram.types import Message
+from pyrogram.errors.exceptions.bad_request_400 import UsernameNotOccupied
 
 from telespider.config import settings
 from telespider.app import app
+from telespider.console import console
 
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 
@@ -11,8 +13,12 @@ CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 async def parse_channel(
     channel_name: str, limit: int = settings.MAX_PER_CHANNEL
 ) -> AsyncGenerator[Message, None]:
-    async for message in app.get_chat_history(channel_name, limit=limit):
-        yield message
+    try:
+        async for message in app.get_chat_history(channel_name, limit=limit):
+            yield message
+    except UsernameNotOccupied:
+        console.print(f"[red]Name {channel_name} is not exists in Telegram")
+        return
 
 
 async def search_message(
@@ -20,8 +26,3 @@ async def search_message(
 ) -> AsyncGenerator[Message, None]:
     async for message in app.search_messages(channel_name, query=query):
         yield message
-
-
-# async def explore_channels(source_channel: str) -> AsyncGenerator[Message, None]:
-# async for message in app.search_messages(channel_name, query=query):
-# yield message
