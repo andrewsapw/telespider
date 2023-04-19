@@ -1,13 +1,18 @@
+from functools import partial
 from typing import AsyncGenerator, List, Optional
 from collections import deque
 
 from pyrogram.types import Chat, Message
 from pyrogram.enums import MessageEntityType
+from rich.table import Table
+from rich.live import Live
 
 from telespider.config import settings
 from telespider.console import console
+
 from .types import ParsingProgress
 from .channel import parse_channel
+from .utils import update_table_result
 
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 
@@ -96,19 +101,25 @@ async def search_text(text: str) -> AsyncGenerator[Message, None]:
 
 async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
     """Search for mentions in messages"""
+    _update_table = partial(
+        update_table_result, search_title="mention", search_value=mention
+    )
+    n_parsed = 0
+
+    table = Table()
+    table.add_column("Channel")
+    table.add_column("Date")
+    table.add_column("Text")
+
     if mention.startswith("@"):
         mention = mention[1:]
 
-    with console.status("Working...") as status:
-        n_parsed = 0
+    with Live(console=console) as live:
         async for p in parse_channels(channels=CHANNELS):
             m = p.message
 
             if n_parsed % 100 == 0:
-                status.update(
-                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
-                    f" | Searching for mention of [bold]{mention}[/bold] in {m.chat.username}"
-                )
+                live.update(_update_table(n_parsed=n_parsed, table=table, progress=p))
 
             # update task description
             message_text = m.text or m.caption
@@ -127,8 +138,8 @@ async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
                     ]
 
                     if mentioned == mention:
-                        console.print(
-                            f"[bold]{m.chat.username}[/bold] - {message_text}"
+                        live.update(
+                            _update_table(n_parsed=n_parsed, table=table, progress=p)
                         )
                         yield m
 
