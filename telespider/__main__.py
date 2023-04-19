@@ -32,19 +32,22 @@ def cli(ctx, debug):
 
 
 @cli.command(name="search")
+@click.option("--explore/--no-explore", default=True, help="Auto explore new channels")
 @click.option("--word", "-w", type=str, required=False)
 @click.option("--user", "-u", type=str, required=False)
 @click.option(
     "-n", type=int, default=1000, help="Number of messages to parse per channel"
 )
 @coro
-async def search_word(word: Optional[str], user: Optional[str], n: int):
+async def search_word(explore: bool, word: Optional[str], user: Optional[str], n: int):
     if word is None and user is None:
         raise click.BadOptionUsage(
             option_name="word | user", message="word or user must be specified"
         )
 
     settings.MAX_PER_CHANNEL = n
+    settings.AUTO_EXPLORE_CHANNELS = explore
+
     await app.start()
     try:
         if word is not None:

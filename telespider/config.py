@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ENTRYPOINT_CHANNELS: str  # comma separated list of channels
     MAX_PER_CHANNEL: int = 100  # maximum number of messages to parse per channel
 
+    AUTO_EXPLORE_CHANNELS: bool = True
+
     # parse .env
     class Config:
         env_file = ROOT_DIR.parent / ".env"

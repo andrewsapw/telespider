@@ -25,6 +25,11 @@ async def parse_channels(
             if message.text is None and message.caption is None:
                 continue
 
+            yield ParsingProgress(message, len(parsed_channels), len(channels))
+
+            if not settings.AUTO_EXPLORE_CHANNELS:
+                continue
+
             linked_channels = extract_channels(message)
             linked_channels = filter(
                 lambda x: x not in parsed_channels and x not in channels,
@@ -33,8 +38,6 @@ async def parse_channels(
 
             for linked_channel in linked_channels:
                 channels.append(linked_channel)
-
-            yield ParsingProgress(message, len(parsed_channels), len(channels))
 
         parsed_channels.add(channel)
 
@@ -78,8 +81,8 @@ async def search_text(text: str):
 
             if n_parsed % 100 == 0:
                 status.update(
-                    f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
-                    f"total messages {n_parsed} | Searching for [bold]{text}[/bold] in {m.chat.username}"
+                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
+                    f" | Searching for word [bold]{text}[/bold] in {m.chat.username}"
                 )
 
             # update task description
@@ -104,8 +107,8 @@ async def search_mentions(mention: str):
 
             if n_parsed % 100 == 0:
                 status.update(
-                    f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
-                    f"total messages {n_parsed} | Searching for [bold]{mention}[/bold] in {m.chat.username}"
+                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
+                    f" | Searching for mention of [bold]{mention}[/bold] in {m.chat.username}"
                 )
 
             # update task description
