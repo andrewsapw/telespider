@@ -1,30 +1,24 @@
 from typing import AsyncGenerator, List, Optional
+from collections import deque
 
 from pyrogram.types import Chat, Message
 
 from telespider.config import settings
 from telespider.console import console
-from telespider.app import app
 from .types import ParsingProgress
+from .channel import parse_channel
 
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
-
-
-async def parse_channel(
-    channel_name: str, limit: int = settings.MAX_PER_CHANNEL
-) -> AsyncGenerator[Message, None]:
-    async for message in app.get_chat_history(channel_name, limit=limit):
-        yield message
 
 
 async def parse_channels(
     channels: List[str] = CHANNELS,
 ) -> AsyncGenerator[ParsingProgress, None]:
-    channels = set(channels)
+    channels: deque = deque(set(channels))
     parsed_channels = set()
 
     while channels:
-        channel = channels.pop()
+        channel = channels.popleft()
 
         async for message in parse_channel(channel_name=channel):
             if message.text is None and message.caption is None:
@@ -32,11 +26,12 @@ async def parse_channels(
 
             linked_channels = extract_channels(message)
             linked_channels = filter(
-                lambda x: x not in parsed_channels, linked_channels
+                lambda x: x not in parsed_channels and x not in channels,
+                linked_channels,
             )
 
             for linked_channel in linked_channels:
-                channels.add(linked_channel)
+                channels.append(linked_channel)
 
             yield ParsingProgress(message, len(parsed_channels), len(channels))
 
@@ -65,21 +60,55 @@ def extract_channels(message: Message) -> List[str]:
 
 
 async def search_text(text: str):
-    async with app:
-        with console.status("Working...") as status:
-            n_parsed = 0
-            async for p in parse_channels(CHANNELS):
-                m = p.message
+    """Search for text in messages"""
 
-                if n_parsed % 100 == 0:
-                    status.update(
-                        f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
-                        f"total messages {n_parsed} | Searching for [bold]{text}[/bold] in {m.chat.username}"
-                    )
+    with console.status("Working...") as status:
+        n_parsed = 0
+        async for p in parse_channels(channels=CHANNELS):
+            m = p.message
 
-                # update task description
-                message_text = m.text or m.caption
-                if text in message_text.lower():
+            if n_parsed % 100 == 0:
+                status.update(
+                    f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
+                    f"total messages {n_parsed} | Searching for [bold]{text}[/bold] in {m.chat.username}"
+                )
+
+            # update task description
+            message_text = m.text or m.caption
+            if text in message_text.lower():
+                console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
+
+            n_parsed += 1
+
+    return
+
+
+async def search_mentions(mention: str):
+    """Search for mentions in messages"""
+
+    with console.status("Working...") as status:
+        n_parsed = 0
+        async for p in parse_channels(channels=CHANNELS):
+            m = p.message
+
+            if n_parsed % 100 == 0:
+                status.update(
+                    f"Parsed channels: {p.channels_parsed} - remaining {p.channels_remaining} : "
+                    f"total messages {n_parsed} | Searching for [bold]{mention}[/bold] in {m.chat.username}"
+                )
+
+            # update task description
+            message_text = m.text or m.caption
+            if m.entities is None:
+                continue
+
+            for message_mention in m.entities:
+                if (
+                    message_mention.type == "mention"
+                    and message_mention.user.username == mention
+                ):
                     console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
 
-                n_parsed += 1
+            n_parsed += 1
+
+    return

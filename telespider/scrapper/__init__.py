@@ -1,1 +1,1 @@
-from .scrapper import search_text
+from .scrapper import search_text, search_mentions

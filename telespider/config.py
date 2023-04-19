@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     API_ID: str
 
     ENTRYPOINT_CHANNELS: str  # comma separated list of channels
-    MAX_PER_CHANNEL: int = 1000  # maximum number of messages to parse per channel
+    MAX_PER_CHANNEL: int = 100  # maximum number of messages to parse per channel
 
     # parse .env
     class Config:
