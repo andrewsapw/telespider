@@ -71,7 +71,7 @@ def extract_channels(message: Message) -> List[str]:
     return linked_channels
 
 
-async def search_text(text: str):
+async def search_text(text: str) -> AsyncGenerator[Message, None]:
     """Search for text in messages"""
 
     with console.status("Working...") as status:
@@ -89,13 +89,12 @@ async def search_text(text: str):
             message_text = m.text or m.caption
             if text in message_text.lower():
                 console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
+                yield m
 
             n_parsed += 1
 
-    return
 
-
-async def search_mentions(mention: str):
+async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
     """Search for mentions in messages"""
     if mention.startswith("@"):
         mention = mention[1:]
@@ -131,7 +130,6 @@ async def search_mentions(mention: str):
                         console.print(
                             f"[bold]{m.chat.username}[/bold] - {message_text}"
                         )
+                        yield m
 
             n_parsed += 1
-
-    return

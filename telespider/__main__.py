@@ -53,9 +53,11 @@ async def search_word(
     await app.start()
     try:
         if word is not None:
-            await scrapper.search_text(word)
+            async for _ in scrapper.search_text(word):
+                ...
         elif user is not None:
-            await scrapper.search_mentions(user)
+            async for _ in scrapper.search_mentions(user):
+                ...
     finally:
         await app.stop(block=False)
 
