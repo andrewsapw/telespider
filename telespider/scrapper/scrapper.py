@@ -3,6 +3,7 @@ from collections import deque
 
 from pyrogram.types import Chat, Message
 from pyrogram.enums import MessageEntityType
+from rich.panel import Panel
 
 from telespider.config import settings
 from telespider.console import console
@@ -88,7 +89,13 @@ async def search_text(text: str) -> AsyncGenerator[Message, None]:
             # update task description
             message_text = m.text or m.caption
             if text in message_text.lower():
-                console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
+                # console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
+                console.print(
+                    Panel(
+                        message_text,
+                        title=f"{m.chat.username} ({m.date.strftime('%Y-%m-%d')})",
+                    )
+                )
                 yield m
 
             n_parsed += 1
@@ -128,7 +135,10 @@ async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
 
                     if mentioned == mention:
                         console.print(
-                            f"[bold]{m.chat.username}[/bold] - {message_text}"
+                            Panel(
+                                message_text,
+                                title=f"{m.chat.username} ({m.date.strftime('%Y-%m-%d')})",
+                            )
                         )
                         yield m
 
