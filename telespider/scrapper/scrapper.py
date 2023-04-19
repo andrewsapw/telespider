@@ -2,6 +2,7 @@ from typing import AsyncGenerator, List, Optional
 from collections import deque
 
 from pyrogram.types import Chat, Message
+from pyrogram.enums import MessageEntityType
 
 from telespider.config import settings
 from telespider.console import console
@@ -52,9 +53,17 @@ def extract_channels(message: Message) -> List[str]:
 
     # find mentions in message text
     if message.entities is not None:
+        message_text = message.text or message.caption
         for entity in message.entities:
-            if entity.type == "mention":
-                linked_channels.append(entity.user.username)
+            if entity.type in (
+                MessageEntityType.TEXT_MENTION,
+                MessageEntityType.MENTION,
+            ):
+                # entity.offset + 1 to remove `@` before mention
+                mentioned = message_text[
+                    entity.offset + 1 : entity.offset + entity.length
+                ]
+                linked_channels.append(mentioned)
 
     return linked_channels
 
@@ -85,6 +94,8 @@ async def search_text(text: str):
 
 async def search_mentions(mention: str):
     """Search for mentions in messages"""
+    if mention.startswith("@"):
+        mention = mention[1:]
 
     with console.status("Working...") as status:
         n_parsed = 0
@@ -103,11 +114,20 @@ async def search_mentions(mention: str):
                 continue
 
             for message_mention in m.entities:
-                if (
-                    message_mention.type == "mention"
-                    and message_mention.user.username == mention
+                if message_mention.type in (
+                    MessageEntityType.MENTION,
+                    MessageEntityType.TEXT_MENTION,
                 ):
-                    console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
+                    mentioned = message_text[
+                        message_mention.offset
+                        + 1 : message_mention.offset
+                        + message_mention.length
+                    ]
+
+                    if mentioned == mention:
+                        console.print(
+                            f"[bold]{m.chat.username}[/bold] - {message_text}"
+                        )
 
             n_parsed += 1
 
