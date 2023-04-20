@@ -4,9 +4,9 @@ Simple package (+ CLI) for scrapping Telegram channel
 
 # Features
 
-:heavy_check_mark: auto explore new channels
-:heavy_check_mark: search text
-:heavy_check_mark: search mentions
+:heavy_check_mark: auto explore new channels  
+:heavy_check_mark: search text  
+:heavy_check_mark: search mentions  
 
 # Usage
 
