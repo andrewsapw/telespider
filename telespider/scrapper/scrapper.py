@@ -1,13 +1,10 @@
 from typing import AsyncGenerator, List, Set
 from collections import deque
 
-from pyrogram.types import Message
 from pyrogram.client import Client
 from pyrogram.enums import MessageEntityType
-from rich.panel import Panel
 
 from telespider.config import settings
-from telespider.console import console
 from .types import ExploreChannelsProgress, MessageParsingProgress
 from .channel import parse_channel, extract_channels
 
@@ -84,76 +81,43 @@ async def explore_channels(
 
 async def search_text(
     app: Client, text: str, channels: List[str]
-) -> AsyncGenerator[Message, None]:
+) -> AsyncGenerator[MessageParsingProgress, None]:
     """Search for text in messages"""
 
-    with console.status("Working...") as status:
-        n_parsed = 0
-        async for p in parse_messages(app=app, channels=channels):
-            m = p.message
+    async for p in parse_messages(app=app, channels=channels):
+        m = p.message
 
-            if n_parsed % 100 == 0:
-                status.update(
-                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
-                    f" | Searching for word [bold]{text}[/bold] in {m.chat.username}"
-                )
-
-            # update task description
-            message_text = m.text or m.caption
-            if text in message_text.lower():
-                # console.print(f"[bold]{m.chat.username}[/bold] - {message_text}")
-                console.print(
-                    Panel(
-                        message_text,
-                        title=f"{m.chat.username} ({m.date.strftime('%Y-%m-%d')})",
-                    )
-                )
-                yield m
-
-            n_parsed += 1
+        # update task description
+        message_text = m.text or m.caption
+        if text in message_text.lower():
+            yield p
 
 
 async def search_mentions(
     app: Client, mention: str, channels: List[str]
-) -> AsyncGenerator[Message, None]:
+) -> AsyncGenerator[MessageParsingProgress, None]:
     """Search for mentions in messages"""
     if mention.startswith("@"):
         mention = mention[1:]
 
-    with console.status("Working...") as status:
-        n_parsed = 0
-        async for p in parse_messages(app=app, channels=channels):
-            m = p.message
+    async for p in parse_messages(app=app, channels=channels):
+        m = p.message
 
-            if n_parsed % 100 == 0:
-                status.update(
-                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
-                    f" | Searching for mention of [bold]{mention}[/bold] in {m.chat.username}"
-                )
+        # update task description
+        message_text = m.text or m.caption
+        if m.entities is None:
+            continue
 
-            # update task description
-            message_text = m.text or m.caption
-            if m.entities is None:
-                continue
+        for message_mention in m.entities:
+            if message_mention.type in (
+                MessageEntityType.MENTION,
+                MessageEntityType.TEXT_MENTION,
+            ):
+                mentioned = message_text[
+                    message_mention.offset
+                    + 1 : message_mention.offset
+                    + message_mention.length
+                ]
 
-            for message_mention in m.entities:
-                if message_mention.type in (
-                    MessageEntityType.MENTION,
-                    MessageEntityType.TEXT_MENTION,
-                ):
-                    mentioned = message_text[
-                        message_mention.offset
-                        + 1 : message_mention.offset
-                        + message_mention.length
-                    ]
-
-                    if mentioned == mention:
-                        console.print(
-                            Panel(
-                                message_text,
-                                title=f"{m.chat.username} ({m.date.strftime('%Y-%m-%d')})",
-                            )
-                        )
-                        yield m
-
-            n_parsed += 1
+                if mentioned == mention:
+                    yield p

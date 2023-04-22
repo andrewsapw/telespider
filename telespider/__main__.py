@@ -1,4 +1,5 @@
-from functools import wraps
+from rich.panel import Panel
+from functools import partial, wraps
 from typing import Optional
 import asyncio
 import uvloop
@@ -52,23 +53,44 @@ def cli(ctx, debug, workdir):
 async def search_word(
     ctx, explore: bool, silent: bool, word: Optional[str], user: Optional[str], n: int
 ):
-    if word is None and user is None:
+    app: App = ctx.obj["APP"]
+
+    if word is not None:
+        search_fun = partial(app.search_text, text=word, channels=CHANNELS)
+        search_target = "word"
+        search_value = word
+    elif user is not None:
+        search_fun = partial(app.search_mentions, mention=user, channels=CHANNELS)
+        search_target = "mention"
+        search_value = user
+    else:
         raise click.BadOptionUsage(
             option_name="word | user", message="word or user must be specified"
         )
-
-    app: App = ctx.obj["APP"]
 
     settings.MAX_PER_CHANNEL = n
     settings.AUTO_EXPLORE_CHANNELS = explore
     console.quiet = silent
 
-    if word is not None:
-        async for _ in app.search_text(text=word, channels=CHANNELS):
-            ...
-    elif user is not None:
-        async for _ in app.search_mentions(mention=user, channels=CHANNELS):
-            ...
+    n_parsed = 0
+    with console.status("Working...") as status:
+        async for p in search_fun():
+            m = p.message
+
+            if n_parsed % 100 == 0:
+                status.update(
+                    f"Parsed: {p.channels_parsed} ch. {n_parsed} messages  - remaining {p.channels_remaining} ch."  # noqa: E501
+                    f" | Searching for {search_target} [bold]{search_value}[/bold] in {m.chat.username}"
+                )
+
+            message_text = m.text or m.caption
+            console.print(
+                Panel(
+                    message_text,
+                    title=f"{m.chat.username} ({m.date.strftime('%Y-%m-%d')})",
+                )
+            )
+            n_parsed += 1
 
 
 @cli.command(name="explore-channels", help="Explore channels mentions")
@@ -84,9 +106,13 @@ async def explore_channels(ctx, silent: bool, n: int):
 
     app: App = ctx.obj["APP"]
 
-    async for i in app.explore_channels(channels=CHANNELS):
-        source_channel = i.source_channel
-        console.print(f"{source_channel}: {i.mentions}")
+    n_parsed = 0
+    with console.status("Working...") as status:
+        async for i in app.explore_channels(channels=CHANNELS):
+            source_channel = i.source_channel
+            console.print(f"{source_channel}: {i.mentions}")
+            status.update()
+            n_parsed += 1
 
 
 if __name__ == "__main__":

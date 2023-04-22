@@ -2,11 +2,10 @@ from typing import AsyncGenerator, AsyncIterator, List
 from contextlib import asynccontextmanager
 
 from pyrogram.client import Client
-from pyrogram.types import Message
 
 from telespider.config import ROOT_DIR
 from telespider.scrapper import explore_channels, search_mentions, search_text
-from telespider.scrapper.types import ExploreChannelsProgress
+from telespider.scrapper.types import ExploreChannelsProgress, MessageParsingProgress
 
 SESSION_DIR = ROOT_DIR.parent / "sessions"
 
@@ -31,7 +30,7 @@ class App:
 
     async def search_mentions(
         self, mention: str, channels: List[str]
-    ) -> AsyncGenerator[Message, None]:
+    ) -> AsyncGenerator[MessageParsingProgress, None]:
         async with self.session() as app:
             async for i in search_mentions(app=app, mention=mention, channels=channels):
                 yield i
@@ -46,7 +45,7 @@ class App:
 
     async def search_text(
         self, text: str, channels: List[str]
-    ) -> AsyncGenerator[Message, None]:
+    ) -> AsyncGenerator[MessageParsingProgress, None]:
         async with self.session() as app:
             async for i in search_text(app=app, text=text, channels=channels):
                 yield i
