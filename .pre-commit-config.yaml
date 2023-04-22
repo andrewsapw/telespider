@@ -6,6 +6,10 @@ repos:
       - id: end-of-file-fixer
       - id: check-ast
       - id: detect-private-key
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: ''  # Use the sha / tag you want to point at
+    hooks:
+    -   id: mypy
   - repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:
