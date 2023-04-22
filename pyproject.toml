@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "telespider"
-version = "0.2.0"
+version = "0.2.1"
 description = "recursively parsing tg channels"
 authors = ["andrewsap <andrewsapw@gmail.com>"]
 license = "MIT"
