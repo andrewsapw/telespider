@@ -1,18 +1,17 @@
-# :spider_web: Telegram scrapper
+# 🕸️ Telegram scrapper
 
 Simple package (+ CLI) for scrapping Telegram channel
 
 # Features
 
-:heavy_check_mark: auto explore new channels  
-:heavy_check_mark: search text  
-:heavy_check_mark: search mentions  
+✔️ auto explore new channels  
+✔️ search text  
+✔️ search mentions  
 
 # Usage
 
 ```console
-$ git clone https://github.com/andrewsapw/telespider.git
-$ poetry install
+$ pip install telespider
 $ tspider search -w "stonks" -n 100 # search word `stonks`
 $ tspider search -u "andrewsap" -n 100 # search mentions of user `andrewsap`
 ```
