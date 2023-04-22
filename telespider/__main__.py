@@ -8,6 +8,7 @@ import click
 from telespider.config import settings, ROOT_DIR
 from telespider.app import App
 from telespider.console import console
+from telespider.scrapper.channel import CHANNELS
 
 uvloop.install()
 
@@ -63,10 +64,10 @@ async def search_word(
     console.quiet = silent
 
     if word is not None:
-        async for _ in app.search_text(text=word):
+        async for _ in app.search_text(text=word, channels=CHANNELS):
             ...
     elif user is not None:
-        async for _ in app.search_mentions(mention=user):
+        async for _ in app.search_mentions(mention=user, channels=CHANNELS):
             ...
 
 
@@ -83,7 +84,7 @@ async def explore_channels(ctx, silent: bool, n: int):
 
     app: App = ctx.obj["APP"]
 
-    async for i in app.explore_channels():
+    async for i in app.explore_channels(channels=CHANNELS):
         source_channel = i.source_channel
         console.print(f"{source_channel}: {i.mentions}")
 

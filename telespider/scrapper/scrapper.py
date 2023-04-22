@@ -82,12 +82,14 @@ async def explore_channels(
         parsed_channels.add(channel)
 
 
-async def search_text(app: Client, text: str) -> AsyncGenerator[Message, None]:
+async def search_text(
+    app: Client, text: str, channels: List[str]
+) -> AsyncGenerator[Message, None]:
     """Search for text in messages"""
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_messages(app=app, channels=CHANNELS):
+        async for p in parse_messages(app=app, channels=channels):
             m = p.message
 
             if n_parsed % 100 == 0:
@@ -111,14 +113,16 @@ async def search_text(app: Client, text: str) -> AsyncGenerator[Message, None]:
             n_parsed += 1
 
 
-async def search_mentions(app: Client, mention: str) -> AsyncGenerator[Message, None]:
+async def search_mentions(
+    app: Client, mention: str, channels: List[str]
+) -> AsyncGenerator[Message, None]:
     """Search for mentions in messages"""
     if mention.startswith("@"):
         mention = mention[1:]
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_messages(app=app, channels=CHANNELS):
+        async for p in parse_messages(app=app, channels=channels):
             m = p.message
 
             if n_parsed % 100 == 0:
