@@ -1,12 +1,10 @@
 from pyrogram.client import Client
 
-from telespider.config import settings
 from telespider.config import ROOT_DIR
 
 SESSION_DIR = ROOT_DIR.parent / "sessions"
-app = Client(
-    name=settings.APP_NAME,
-    api_id=settings.API_ID,
-    api_hash=settings.API_HASH,
-    workdir=SESSION_DIR,
-)
+
+
+class App:
+    def __init__(self, name: str, api_id: str, api_hash: str, workdir: str) -> None:
+        self.app = Client(name=name, api_id=api_id, api_hash=api_hash, workdir=workdir)

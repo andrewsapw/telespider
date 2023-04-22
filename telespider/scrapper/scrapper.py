@@ -1,7 +1,8 @@
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Set
 from collections import deque
 
 from pyrogram.types import Message
+from pyrogram.client import Client
 from pyrogram.enums import MessageEntityType
 from rich.panel import Panel
 
@@ -14,64 +15,79 @@ CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 
 
 async def parse_messages(
+    app: Client,
     channels: List[str] = CHANNELS,
 ) -> AsyncGenerator[MessageParsingProgress, None]:
-    channels: deque = deque(set(channels))
-    parsed_channels = set()
+    channels_queue: deque = deque(set(channels))
+    parsed_channels: Set[str] = set()
 
-    while channels:
-        channel = channels.popleft()
+    while channels_queue:
+        channel = channels_queue.popleft()
 
-        async for message in parse_channel(channel_name=channel):
+        async for message in parse_channel(app=app, channel_name=channel):
             if message.text is None and message.caption is None:
                 continue
 
-            yield MessageParsingProgress(message, len(parsed_channels), len(channels))
+            yield MessageParsingProgress(
+                message, len(parsed_channels), len(channels_queue)
+            )
 
             if not settings.AUTO_EXPLORE_CHANNELS:
                 continue
 
             linked_channels = extract_channels(message)
-            linked_channels = filter(
-                lambda x: x not in parsed_channels and x not in channels,
-                linked_channels,
+            linked_channels = list(
+                filter(
+                    lambda x: x not in parsed_channels and x not in channels_queue,
+                    linked_channels,
+                )
             )
 
             for linked_channel in linked_channels:
-                channels.append(linked_channel)
+                channels_queue.append(linked_channel)
 
         parsed_channels.add(channel)
 
 
 async def explore_channels(
+    app: Client,
     channels: List[str] = CHANNELS,
 ) -> AsyncGenerator[ExploreChannelsProgress, None]:
-    channels: deque = deque(set(channels))
+    channels_queue: deque = deque(set(channels))
     parsed_channels = set()
 
-    while channels:
-        channel = channels.popleft()
-
-        async for message in parse_channel(channel_name=channel):
+    while channels_queue:
+        channel = channels_queue.popleft()
+        channel_mentions = set()
+        async for message in parse_channel(app=app, channel_name=channel):
             linked_channels = extract_channels(message)
-            linked_channels = filter(
-                lambda x: x not in parsed_channels and x not in channels,
-                linked_channels,
+            linked_channels = list(
+                filter(
+                    lambda x: x not in parsed_channels and x not in channels_queue,
+                    linked_channels,
+                )
             )
 
+            if not linked_channels:
+                continue
+
             for linked_channel in linked_channels:
-                channels.append(linked_channel)
-                yield ExploreChannelsProgress(message=message, mentions=linked_channel)
+                channels_queue.append(linked_channel)
+                channel_mentions.add(linked_channel)
+
+        yield ExploreChannelsProgress(
+            source_channel=channel, mentions=list(channel_mentions)
+        )
 
         parsed_channels.add(channel)
 
 
-async def search_text(text: str) -> AsyncGenerator[Message, None]:
+async def search_text(app: Client, text: str) -> AsyncGenerator[Message, None]:
     """Search for text in messages"""
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_messages(channels=CHANNELS):
+        async for p in parse_messages(app=app, channels=CHANNELS):
             m = p.message
 
             if n_parsed % 100 == 0:
@@ -95,14 +111,14 @@ async def search_text(text: str) -> AsyncGenerator[Message, None]:
             n_parsed += 1
 
 
-async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
+async def search_mentions(app: Client, mention: str) -> AsyncGenerator[Message, None]:
     """Search for mentions in messages"""
     if mention.startswith("@"):
         mention = mention[1:]
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_messages(channels=CHANNELS):
+        async for p in parse_messages(app=app, channels=CHANNELS):
             m = p.message
 
             if n_parsed % 100 == 0:

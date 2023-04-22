@@ -9,7 +9,7 @@ class MessageParsingProgress(NamedTuple):
 
 
 class ExploreChannelsProgress(NamedTuple):
-    message: Message
+    source_channel: str
     mentions: List[str]
 
 
