@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     MAX_PER_CHANNEL: int = 100  # maximum number of messages to parse per channel
 
     AUTO_EXPLORE_CHANNELS: bool = True
-    SILENT: bool = False
+    SILENT: bool = True
 
     # parse .env
     class Config:
