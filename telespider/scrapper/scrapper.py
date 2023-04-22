@@ -1,21 +1,21 @@
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List
 from collections import deque
 
-from pyrogram.types import Chat, Message
+from pyrogram.types import Message
 from pyrogram.enums import MessageEntityType
 from rich.panel import Panel
 
 from telespider.config import settings
 from telespider.console import console
-from .types import ParsingProgress
-from .channel import parse_channel
+from .types import ExploreChannelsProgress, MessageParsingProgress
+from .channel import parse_channel, extract_channels
 
 CHANNELS = settings.ENTRYPOINT_CHANNELS.split(",")
 
 
-async def parse_channels(
+async def parse_messages(
     channels: List[str] = CHANNELS,
-) -> AsyncGenerator[ParsingProgress, None]:
+) -> AsyncGenerator[MessageParsingProgress, None]:
     channels: deque = deque(set(channels))
     parsed_channels = set()
 
@@ -26,7 +26,7 @@ async def parse_channels(
             if message.text is None and message.caption is None:
                 continue
 
-            yield ParsingProgress(message, len(parsed_channels), len(channels))
+            yield MessageParsingProgress(message, len(parsed_channels), len(channels))
 
             if not settings.AUTO_EXPLORE_CHANNELS:
                 continue
@@ -43,33 +43,27 @@ async def parse_channels(
         parsed_channels.add(channel)
 
 
-def extract_channels(message: Message) -> List[str]:
-    linked_channels = []
-    forwarded_from: Optional[Chat] = message.forward_from_chat
-    if forwarded_from is not None:
-        if (
-            forwarded_from.username is not None
-            and not forwarded_from.is_restricted
-            and not forwarded_from.is_scam
-            and not forwarded_from.is_fake
-        ):
-            linked_channels.append(forwarded_from.username)
+async def explore_channels(
+    channels: List[str] = CHANNELS,
+) -> AsyncGenerator[ExploreChannelsProgress, None]:
+    channels: deque = deque(set(channels))
+    parsed_channels = set()
 
-    # find mentions in message text
-    if message.entities is not None:
-        message_text = message.text or message.caption
-        for entity in message.entities:
-            if entity.type in (
-                MessageEntityType.TEXT_MENTION,
-                MessageEntityType.MENTION,
-            ):
-                # entity.offset + 1 to remove `@` before mention
-                mentioned = message_text[
-                    entity.offset + 1 : entity.offset + entity.length
-                ]
-                linked_channels.append(mentioned)
+    while channels:
+        channel = channels.popleft()
 
-    return linked_channels
+        async for message in parse_channel(channel_name=channel):
+            linked_channels = extract_channels(message)
+            linked_channels = filter(
+                lambda x: x not in parsed_channels and x not in channels,
+                linked_channels,
+            )
+
+            for linked_channel in linked_channels:
+                channels.append(linked_channel)
+                yield ExploreChannelsProgress(message=message, mentions=linked_channel)
+
+        parsed_channels.add(channel)
 
 
 async def search_text(text: str) -> AsyncGenerator[Message, None]:
@@ -77,7 +71,7 @@ async def search_text(text: str) -> AsyncGenerator[Message, None]:
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_channels(channels=CHANNELS):
+        async for p in parse_messages(channels=CHANNELS):
             m = p.message
 
             if n_parsed % 100 == 0:
@@ -108,7 +102,7 @@ async def search_mentions(mention: str) -> AsyncGenerator[Message, None]:
 
     with console.status("Working...") as status:
         n_parsed = 0
-        async for p in parse_channels(channels=CHANNELS):
+        async for p in parse_messages(channels=CHANNELS):
             m = p.message
 
             if n_parsed % 100 == 0:

@@ -29,7 +29,7 @@ def cli(ctx, debug):
     ctx.obj["DEBUG"] = debug
 
 
-@cli.command(name="search")
+@cli.command(name="search", help="Search word or user mentions in channels messages")
 @click.option("--explore/--no-explore", default=True, help="Auto explore new channels")
 @click.option("--silent", is_flag=True, default=False, help="Suppress all output")
 @click.option("--word", "-w", type=str, required=False)
@@ -58,6 +58,25 @@ async def search_word(
         elif user is not None:
             async for _ in scrapper.search_mentions(user):
                 ...
+    finally:
+        await app.stop(block=False)
+
+
+@cli.command(name="explore-channels", help="Explore channels mentions")
+@click.option("--silent", is_flag=True, default=False, help="Suppress all output")
+@click.option(
+    "-n", type=int, default=1000, help="Number of messages to parse per channel"
+)
+@coro
+async def explore_channels(silent: bool, n: int):
+    settings.MAX_PER_CHANNEL = n
+    console.quiet = silent
+
+    await app.start()
+    try:
+        async for i in scrapper.explore_channels():
+            source_channel = i.message.chat.username
+            console.print(f"{source_channel}: {i.mentions}")
     finally:
         await app.stop(block=False)
 
