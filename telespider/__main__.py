@@ -5,7 +5,6 @@ import uvloop
 
 import click
 
-from telespider import scrapper
 from telespider.config import settings, ROOT_DIR
 from telespider.app import App
 from telespider.console import console
@@ -36,7 +35,7 @@ def cli(ctx, debug, workdir):
     )
     ctx.ensure_object(dict)
     ctx.obj["DEBUG"] = debug
-    ctx.obj["APP"] = app.app
+    ctx.obj["APP"] = app
 
 
 @cli.command(name="search", help="Search word or user mentions in channels messages")
@@ -57,22 +56,18 @@ async def search_word(
             option_name="word | user", message="word or user must be specified"
         )
 
-    app = ctx.obj["APP"]
+    app: App = ctx.obj["APP"]
 
     settings.MAX_PER_CHANNEL = n
     settings.AUTO_EXPLORE_CHANNELS = explore
     console.quiet = silent
 
-    await app.start()
-    try:
-        if word is not None:
-            async for _ in scrapper.search_text(app=app, text=word):
-                ...
-        elif user is not None:
-            async for _ in scrapper.search_mentions(app=app, mention=user):
-                ...
-    finally:
-        await app.stop(block=False)
+    if word is not None:
+        async for _ in app.search_text(text=word):
+            ...
+    elif user is not None:
+        async for _ in app.search_mentions(mention=user):
+            ...
 
 
 @cli.command(name="explore-channels", help="Explore channels mentions")
@@ -86,15 +81,11 @@ async def explore_channels(ctx, silent: bool, n: int):
     settings.MAX_PER_CHANNEL = n
     console.quiet = silent
 
-    app = ctx.obj["APP"]
+    app: App = ctx.obj["APP"]
 
-    await app.start()
-    try:
-        async for i in scrapper.explore_channels(app=app):
-            source_channel = i.source_channel
-            console.print(f"{source_channel}: {i.mentions}")
-    finally:
-        await app.stop(block=False)
+    async for i in app.explore_channels():
+        source_channel = i.source_channel
+        console.print(f"{source_channel}: {i.mentions}")
 
 
 if __name__ == "__main__":
